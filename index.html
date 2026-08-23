@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A personal recipe collection read directly from a simple ODS spreadsheet.">
+  <title>My Recipe Book</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --ink:#2b241d; --muted:#746a60; --paper:#fbf7ef; --card:#fffdf8;
+      --line:#ddd1bf; --red:#b64d35; --red-dark:#873825; --sage:#58705a;
+      --sage-pale:#e8efe5; --shadow:0 24px 70px rgba(54,39,27,.16);
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 Arial,Helvetica,sans-serif; }
+    body.modal-open { overflow:hidden; }
+    button,input { font:inherit; }
+    button { color:inherit; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    header { min-height:74px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 6vw; border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:11px; color:var(--ink); font:700 1.16rem Georgia,serif; text-decoration:none; }
+    .brand-mark { width:36px; height:36px; display:grid; place-items:center; border-radius:50%; color:#fff; background:var(--red); font-style:italic; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:14px; }
+    #status { margin:0; color:var(--muted); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; }
+    .button { display:inline-flex; align-items:center; justify-content:center; padding:9px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); cursor:pointer; text-decoration:none; }
+    .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,350px); gap:8vw; align-items:end; padding:clamp(64px,10vw,125px) 6vw clamp(58px,8vw,94px); border-bottom:1px solid var(--line); background:radial-gradient(circle at 89% 19%,rgba(182,77,53,.14),transparent 24%),linear-gradient(135deg,#fbf7ef,#f1e7d8); }
+    .eyebrow { margin:0 0 13px; color:var(--red-dark); font-size:.73rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+    h1,h2,h3 { margin:0; font-family:Georgia,"Times New Roman",serif; font-weight:500; letter-spacing:-.035em; }
+    h1 { max-width:760px; font-size:clamp(3.2rem,7.8vw,7rem); line-height:.93; }
+    .hero-copy>p:last-child { max-width:650px; margin:28px 0 0; color:var(--muted); font-size:clamp(1rem,1.5vw,1.22rem); }
+    .hero-note { padding:28px; border:1px solid rgba(88,112,90,.4); border-radius:110px 110px 24px 24px; background:rgba(232,239,229,.78); text-align:center; }
+    .hero-note span { display:block; margin-bottom:20px; color:var(--sage); font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    .hero-note strong { display:block; font:500 1.55rem Georgia,serif; }
+    .hero-note p { margin:8px 0 0; color:var(--muted); font-size:.88rem; }
+    main>section.library { padding:clamp(54px,7vw,88px) 6vw 100px; }
+    .library-head { display:flex; align-items:end; justify-content:space-between; gap:30px; margin-bottom:34px; }
+    h2 { font-size:clamp(2rem,4vw,3.5rem); line-height:1.04; }
+    .search { width:min(100%,420px); display:flex; align-items:center; gap:9px; padding:13px 16px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
+    .search input { width:100%; border:0; outline:0; background:transparent; color:var(--ink); }
+    .category-row,.tag-filters { display:flex; gap:8px; padding-bottom:20px; overflow-x:auto; }
+    .category-row button,.tag-filters button { flex:0 0 auto; padding:8px 13px; border:1px solid var(--line); border-radius:999px; background:transparent; cursor:pointer; }
+    .category-row button.active { border-color:var(--red); color:#fff; background:var(--red); }
+    .tag-filters { align-items:center; flex-wrap:wrap; overflow:visible; color:var(--muted); font-size:.78rem; }
+    .tag-filters>span { margin-right:4px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .tag-filters button { padding:6px 10px; border:0; color:var(--sage); background:var(--sage-pale); }
+    .tag-filters button.active { color:#fff; background:var(--sage); }
+    .results { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 0; border-top:1px solid var(--line); color:var(--muted); font-size:.82rem; }
+    .results button { border:0; background:transparent; color:var(--red-dark); cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+    .notice { margin:0 0 20px; padding:25px; border:1px solid var(--line); background:var(--card); color:var(--muted); }
+    .notice[hidden] { display:none; }
+    .notice strong { color:var(--ink); }
+    .notice p { margin:6px 0 14px; }
+    .recipe-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid var(--line); border-left:1px solid var(--line); }
+    .card { min-height:350px; display:flex; flex-direction:column; padding:25px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--card); }
+    .card-top,.card-foot { display:flex; align-items:center; justify-content:space-between; gap:15px; color:var(--muted); font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; }
+    .kind { align-self:flex-start; margin-top:17px; padding:4px 8px; border-radius:4px; color:var(--red-dark); background:#f5e2dc; font-size:.66rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .card h3 { margin:36px 0 13px; font-size:clamp(1.5rem,2.2vw,2.05rem); line-height:1.08; }
+    .kind+h3 { margin-top:17px; }
+    .card>p { margin:0; color:var(--muted); }
+    .tags { display:flex; flex-wrap:wrap; gap:6px; margin:20px 0; }
+    .tags span { padding:5px 8px; border-radius:999px; color:var(--sage); background:var(--sage-pale); font-size:.72rem; }
+    .card-foot { margin-top:auto; padding-top:17px; border-top:1px solid var(--line); }
+    .card-foot button { border:0; background:transparent; color:var(--red-dark); cursor:pointer; font-weight:700; text-transform:none; }
+    .update { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:7vw; padding:clamp(58px,8vw,100px) 6vw; color:#f7f2e9; background:#303930; }
+    .update .eyebrow { color:#dfb5a8; }
+    .update ol { margin:0; padding:0; list-style:none; }
+    .update li { display:grid; grid-template-columns:38px 1fr; gap:14px; padding-bottom:20px; }
+    .update li>span { width:34px; height:34px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.35); border-radius:50%; font-family:Georgia,serif; }
+    .update li p { margin:0; color:#d5ddd3; }
+    .update li strong { color:#fff; }
+    .update .button { grid-column:2; justify-self:start; color:#303930; background:#f5e7d4; }
+    footer { display:flex; justify-content:space-between; gap:18px; padding:24px 6vw; color:var(--muted); font-size:.78rem; }
+    dialog { width:min(1080px,calc(100% - 40px)); max-height:calc(100vh - 40px); padding:0; border:0; border-radius:22px; background:var(--paper); color:var(--ink); box-shadow:var(--shadow); }
+    dialog::backdrop { background:rgba(34,27,21,.66); backdrop-filter:blur(7px); }
+    .close { position:sticky; z-index:2; top:16px; float:right; width:42px; height:42px; margin:16px 16px 0 0; border:1px solid var(--line); border-radius:50%; background:var(--card); cursor:pointer; font-size:1.65rem; line-height:1; }
+    .modal-head { padding:clamp(50px,7vw,80px); padding-bottom:40px; border-bottom:1px solid var(--line); background:linear-gradient(140deg,#f7eddf,#f3e4d9); }
+    .modal-head h2 { max-width:800px; font-size:clamp(2.5rem,6vw,5.2rem); }
+    .modal-summary { max-width:750px; margin:20px 0 0; color:var(--muted); font-size:1.05rem; }
+    .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:21px; }
+    .meta span { padding:6px 10px; border:1px solid rgba(135,56,37,.2); border-radius:999px; color:var(--red-dark); background:rgba(255,255,255,.5); font-size:.74rem; }
+    .variation-box { padding:34px clamp(26px,7vw,80px); border-bottom:1px solid var(--line); background:var(--card); }
+    .variation-box h3 { font-size:1.65rem; }
+    .variation-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:18px; }
+    .variation-list button { display:flex; flex-direction:column; gap:4px; padding:14px; border:1px solid var(--line); border-radius:11px; background:var(--paper); cursor:pointer; text-align:left; }
+    .variation-list button.active { border-color:var(--sage); box-shadow:inset 0 0 0 1px var(--sage); background:var(--sage-pale); }
+    .variation-list small { color:var(--muted); }
+    .variation-note { margin:30px clamp(26px,7vw,80px) 0; padding:19px; border-left:4px solid var(--red); background:#f6e8e1; }
+    .variation-note strong { display:block; }
+    .variation-note p { margin:6px 0 0; color:var(--muted); }
+    .recipe-body { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:7vw; padding:clamp(40px,7vw,80px); }
+    .variation-adjustments { margin:0 clamp(26px,7vw,80px) clamp(40px,7vw,70px); padding:28px; border:1px solid rgba(88,112,90,.35); border-radius:16px; background:var(--sage-pale); }
+    .variation-adjustments>h3 { margin-bottom:20px; font-size:1.65rem; }
+    .variation-adjustments .recipe-body { padding:0; }
+    .recipe-body ul,.recipe-body ol { margin:0; padding:0; list-style:none; }
+    .recipe-body li { position:relative; padding:12px 0 12px 30px; border-bottom:1px solid var(--line); }
+    .recipe-body ul li::before { content:""; position:absolute; left:4px; top:20px; width:8px; height:8px; border-radius:50%; background:var(--sage); }
+    .recipe-body ol { counter-reset:step; }
+    .recipe-body ol li { counter-increment:step; }
+    .recipe-body ol li::before { content:counter(step); position:absolute; left:0; color:var(--red-dark); font:700 1.05rem Georgia,serif; }
+    .pending { padding:19px; border:1px dashed var(--line); background:var(--card); color:var(--muted); }
+    .pending strong { color:var(--ink); }
+    .pending p { margin:6px 0 0; }
+    .modal-tags { display:flex; flex-wrap:wrap; gap:7px; padding:0 clamp(26px,7vw,80px) 26px; }
+    .modal-tags span { padding:5px 9px; border-radius:999px; color:var(--sage); background:var(--sage-pale); font-size:.73rem; }
+    .workbook-note { margin:0; padding:18px clamp(26px,7vw,80px); border-top:1px solid var(--line); background:var(--card); color:var(--muted); font-size:.76rem; }
+    @media(max-width:900px) { .hero,.update { grid-template-columns:1fr; } .hero-note { max-width:360px; border-radius:22px; text-align:left; } .library-head { align-items:stretch; flex-direction:column; } .recipe-grid { grid-template-columns:1fr; } .card { min-height:290px; } .update .button { grid-column:1; } }
+    @media(max-width:700px) { dialog { width:100%; max-height:100vh; min-height:100vh; border-radius:0; } .variation-list,.recipe-body { grid-template-columns:1fr; } }
+    @media(max-width:560px) { header { padding:0 20px; } #status { display:none; } .hero,main>section.library,.update { padding-left:20px; padding-right:20px; } h1 { font-size:clamp(3rem,16vw,4.8rem); } footer { align-items:flex-start; flex-direction:column; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="#top"><span class="brand-mark">R</span><span>My Recipe Book</span></a>
+    <div class="header-actions">
+      <p id="status">Loading Recipes.ods…</p>
+      <input class="sr-only" id="file" type="file" accept=".ods,.xlsx,.xls">
+      <button class="button" id="open-file" type="button">Open ODS</button>
+    </div>
+  </header>
+
+  <section class="hero" id="top">
+    <div class="hero-copy">
+      <p class="eyebrow">Your own cooking collection</p>
+      <h1>Cook what you already love.</h1>
+      <p>Search the collection, choose a healthier or richer variation, and read each recipe in a clean cooking view.</p>
+    </div>
+    <div class="hero-note">
+      <span id="source">Live from Recipes.ods</span>
+      <strong id="recipe-count">Loading recipes…</strong>
+      <p id="variation-count">The site reads the spreadsheet directly.</p>
+    </div>
+  </section>
+
+  <main>
+    <section class="library" aria-labelledby="browse-title">
+      <div class="library-head">
+        <div><p class="eyebrow">Browse the collection</p><h2 id="browse-title">What would you like to make?</h2></div>
+        <label class="search"><span aria-hidden="true">⌕</span><span class="sr-only">Search recipes</span><input id="search" type="search" placeholder="Search recipes, tags or methods"></label>
+      </div>
+      <nav class="category-row" id="categories" aria-label="Recipe categories"></nav>
+      <div class="tag-filters" id="tag-filters" aria-label="Popular recipe tags"></div>
+      <div class="results"><span id="results">0 results</span><button id="clear" type="button" hidden>Clear filters</button></div>
+      <div class="notice" id="notice"><strong>Loading the recipe spreadsheet…</strong><p>If you opened this HTML file directly, use the Open ODS button.</p></div>
+      <div class="recipe-grid" id="cards"></div>
+    </section>
+
+    <section class="update" aria-labelledby="update-title">
+      <div><p class="eyebrow">Adding recipes stays simple</p><h2 id="update-title">One row in the ODS becomes one recipe card.</h2></div>
+      <ol>
+        <li><span>1</span><p><strong>Edit Recipes.ods.</strong> Add a row to Recipes. Use Variations only for another health, taste, topping or method option.</p></li>
+        <li><span>2</span><p><strong>Keep the same file name.</strong> Put Recipes.ods beside index.html in the GitHub repository.</p></li>
+        <li><span>3</span><p><strong>Refresh the site.</strong> Categories, tags, cards and variation choices are rebuilt from the spreadsheet.</p></li>
+      </ol>
+      <a class="button" href="Recipes.ods" download>Download Recipes.ods ↓</a>
+    </section>
+  </main>
+
+  <footer><span>My Recipe Book</span><span>Static HTML + one editable ODS file.</span></footer>
+
+  <dialog id="recipe-dialog">
+    <button class="close" id="close-dialog" type="button" aria-label="Close recipe">×</button>
+    <div id="dialog-content"></div>
+  </dialog>
+
+  <noscript>This site needs JavaScript to read Recipes.ods.</noscript>
+
+  <script>
+    "use strict";
+    const DEFAULT_FILE = "Recipes.ods";
+    const state = { recipes: [], variations: [], search: "", category: "All recipes", tag: "", selected: null, variation: null };
+    const $ = id => document.getElementById(id);
+    const value = (row, key) => String(row[key] == null ? "" : row[key]).trim();
+    const visible = row => value(row, "Show").toLowerCase() !== "no";
+    const tags = input => input.split(",").map(item => item.trim()).filter(Boolean);
+    const lines = input => input.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+    const make = (tag, className, text) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+    const appendText = (parent, tag, className, text) => parent.appendChild(make(tag, className, text));
+
+    function readWorkbook(buffer, label) {
+      if (!window.XLSX) throw new Error("The spreadsheet reader could not be loaded. Check the internet connection and try again.");
+      const book = XLSX.read(buffer, { type: "array" });
+      if (!book.Sheets.Recipes) throw new Error("The ODS needs a sheet named Recipes.");
+      const recipeRows = XLSX.utils.sheet_to_json(book.Sheets.Recipes, { defval: "" });
+      const variationRows = book.Sheets.Variations ? XLSX.utils.sheet_to_json(book.Sheets.Variations, { defval: "" }) : [];
+
+      state.recipes = recipeRows.filter(visible).map(row => ({
+        name:value(row,"Recipe"), kind:value(row,"Kind")||"Recipe", category:value(row,"Category")||"Uncategorised",
+        subcategory:value(row,"Subcategory"), summary:value(row,"Summary"), method:value(row,"Method"),
+        tags:tags(value(row,"Tags")), parent:value(row,"Parent Recipe"), ingredients:value(row,"Ingredients"),
+        steps:value(row,"Steps"), notes:value(row,"Notes")
+      })).filter(recipe => recipe.name);
+      state.variations = variationRows.filter(visible).map(row => ({
+        recipe:value(row,"Recipe"), name:value(row,"Variation"), type:value(row,"Type"), position:value(row,"Health / Taste"),
+        method:value(row,"Method"), batch:value(row,"Batch / Pan"), changes:value(row,"What Changes"),
+        ingredients:value(row,"Ingredients"), steps:value(row,"Steps"), isDefault:value(row,"Default").toLowerCase()==="yes", notes:value(row,"Notes")
+      })).filter(item => item.recipe && item.name);
+
+      state.search = ""; state.category = "All recipes"; state.tag = "";
+      $("search").value = "";
+      $("status").textContent = state.recipes.length + " entries · " + state.variations.length + " variations";
+      $("source").textContent = "Live from " + label;
+      const masterCount = state.recipes.filter(recipe => recipe.kind.toLowerCase() !== "component").length;
+      $("recipe-count").textContent = masterCount + " recipes";
+      $("variation-count").textContent = (state.recipes.length-masterCount) + " components and " + state.variations.length + " variations";
+      $("notice").hidden = true;
+      renderFilters(); renderCards();
+    }
+
+    async function loadDefault() {
+      if (location.protocol === "file:") {
+        showError("Browsers do not allow a local HTML file to fetch another local file. Click Open ODS and choose Recipes.ods.");
+        return;
+      }
+      try {
+        const response = await fetch(DEFAULT_FILE, { cache:"no-store" });
+        if (!response.ok) throw new Error("Could not load Recipes.ods (" + response.status + ").");
+        readWorkbook(await response.arrayBuffer(), DEFAULT_FILE);
+      } catch (error) { showError(error.message || "Could not load Recipes.ods."); }
+    }
+
+    function showError(message) {
+      $("status").textContent = "ODS not loaded";
+      $("notice").hidden = false;
+      $("notice").replaceChildren(make("strong","","The recipe file is not loaded."), make("p","",message));
+      const button = make("button","button","Open ODS");
+      button.type = "button"; button.addEventListener("click", () => $("file").click());
+      $("notice").appendChild(button);
+    }
+
+    function renderFilters() {
+      const categories = ["All recipes", ...new Set(state.recipes.map(recipe => recipe.category))].sort((a,b) => a === "All recipes" ? -1 : b === "All recipes" ? 1 : a.localeCompare(b));
+      $("categories").replaceChildren(...categories.map(category => {
+        const button = make("button", state.category === category ? "active" : "", category);
+        button.type = "button";
+        button.addEventListener("click", () => { state.category = category; state.tag = ""; renderFilters(); renderCards(); });
+        return button;
+      }));
+
+      const counts = new Map();
+      state.recipes.forEach(recipe => recipe.tags.forEach(tag => counts.set(tag,(counts.get(tag)||0)+1)));
+      const popular = [...counts.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,8).map(item => item[0]);
+      const label = make("span","","Popular filters");
+      $("tag-filters").replaceChildren(label, ...popular.map(tag => {
+        const button = make("button", state.tag === tag ? "active" : "", tag);
+        button.type = "button";
+        button.addEventListener("click", () => { state.tag = state.tag === tag ? "" : tag; renderFilters(); renderCards(); });
+        return button;
+      }));
+    }
+
+    function matchingRecipes() {
+      const query = state.search.trim().toLowerCase();
+      return state.recipes.filter(recipe => {
+        const categoryMatch = state.category === "All recipes" || recipe.category === state.category;
+        const tagMatch = !state.tag || recipe.tags.includes(state.tag);
+        const text = [recipe.name,recipe.category,recipe.subcategory,recipe.summary,recipe.method,recipe.tags.join(" ")].join(" ").toLowerCase();
+        return categoryMatch && tagMatch && (!query || text.includes(query));
+      });
+    }
+
+    function renderCards() {
+      const results = matchingRecipes();
+      $("results").textContent = results.length + (results.length === 1 ? " result" : " results");
+      $("clear").hidden = !(state.search || state.tag || state.category !== "All recipes");
+      const fragment = document.createDocumentFragment();
+      results.forEach((recipe,index) => fragment.appendChild(recipeCard(recipe,index)));
+      $("cards").replaceChildren(fragment);
+      if (state.recipes.length && !results.length) {
+        $("notice").hidden = false;
+        $("notice").replaceChildren(make("strong","","No recipes match those filters."), make("p","","Try another word or clear the current category and tag."));
+      } else if (state.recipes.length) $("notice").hidden = true;
+    }
+
+    function recipeCard(recipe,index) {
+      const card = make("article","card");
+      const top = make("div","card-top"); appendText(top,"span","",recipe.subcategory||recipe.category); appendText(top,"span","",String(index+1).padStart(2,"0"));
+      card.appendChild(top);
+      if (recipe.kind.toLowerCase() === "component") appendText(card,"span","kind","Component");
+      appendText(card,"h3","",recipe.name);
+      appendText(card,"p","",recipe.summary || "Open this entry to see its workbook details and variations.");
+      const tagRow = make("div","tags"); recipe.tags.slice(0,4).forEach(tag => appendText(tagRow,"span","",tag)); card.appendChild(tagRow);
+      const foot = make("div","card-foot"); appendText(foot,"span","",recipe.method||recipe.category);
+      const open = make("button","","Read recipe →"); open.type="button"; open.addEventListener("click",() => openRecipe(recipe)); foot.appendChild(open); card.appendChild(foot);
+      return card;
+    }
+
+    function openRecipe(recipe) {
+      state.selected = recipe;
+      const options = state.variations.filter(item => item.recipe === recipe.name);
+      state.variation = options.find(item => item.isDefault) || options[0] || null;
+      renderDialog();
+      $("recipe-dialog").showModal();
+      document.body.classList.add("modal-open");
+    }
+
+    function renderDialog() {
+      const recipe = state.selected;
+      const options = state.variations.filter(item => item.recipe === recipe.name);
+      const root = document.createDocumentFragment();
+      const head = make("section","modal-head"); appendText(head,"p","eyebrow",recipe.category + (recipe.subcategory ? " · " + recipe.subcategory : "")); appendText(head,"h2","",recipe.name); appendText(head,"p","modal-summary",recipe.summary);
+      const meta = make("div","meta"); [recipe.method,recipe.parent ? "Part of " + recipe.parent : "",options.length + (options.length===1?" variation":" variations")].filter(Boolean).forEach(item => appendText(meta,"span","",item)); head.appendChild(meta); root.appendChild(head);
+
+      if (options.length) {
+        const box = make("section","variation-box"); appendText(box,"p","eyebrow","Choose your version"); appendText(box,"h3","","Health, taste and method variations");
+        const list = make("div","variation-list"); options.forEach(option => {
+          const button = make("button",state.variation && state.variation.name===option.name?"active":""); button.type="button"; appendText(button,"strong","",option.name); appendText(button,"small","",[option.position,option.method,option.batch].filter(Boolean).join(" · "));
+          button.addEventListener("click",()=>{state.variation=option;renderDialog();}); list.appendChild(button);
+        }); box.appendChild(list); root.appendChild(box);
+      }
+      if (state.variation) { const note=make("section","variation-note"); appendText(note,"strong","",state.variation.name); appendText(note,"p","",state.variation.changes||state.variation.notes||"Use this variation's ingredient and method fields when they are provided."); root.appendChild(note); }
+
+      const body=make("div","recipe-body"); body.appendChild(contentSection("Ingredients",lines(recipe.ingredients),false)); body.appendChild(contentSection("Method",lines(recipe.steps),true)); root.appendChild(body);
+      if (state.variation && (state.variation.ingredients || state.variation.steps)) {
+        const changes=make("section","variation-adjustments"); appendText(changes,"p","eyebrow","Use with the base recipe"); appendText(changes,"h3","","Changes for “"+state.variation.name+"”");
+        const changeBody=make("div","recipe-body");
+        if (state.variation.ingredients) changeBody.appendChild(contentSection("Ingredient changes",lines(state.variation.ingredients),false));
+        if (state.variation.steps) changeBody.appendChild(contentSection("Method changes",lines(state.variation.steps),true));
+        changes.appendChild(changeBody); root.appendChild(changes);
+      }
+      if (recipe.tags.length) { const tagRow=make("div","modal-tags"); recipe.tags.forEach(tag=>appendText(tagRow,"span","",tag)); root.appendChild(tagRow); }
+      if (recipe.notes) appendText(root,"p","workbook-note","Workbook note: "+recipe.notes);
+      $("dialog-content").replaceChildren(root);
+    }
+
+    function contentSection(title,items,ordered) {
+      const section=make("section",""); appendText(section,"p","eyebrow",title);
+      if (items.length) { const list=make(ordered?"ol":"ul",""); items.forEach(item=>appendText(list,"li","",ordered?item.replace(/^\d+[.)]\s*/,""):item)); section.appendChild(list); }
+      else { const pending=make("div","pending"); appendText(pending,"strong","",title+" not added yet."); appendText(pending,"p","","Add one "+(ordered?"step":"ingredient")+" per line in Recipes.ods and it will appear here automatically."); section.appendChild(pending); }
+      return section;
+    }
+
+    $("open-file").addEventListener("click",() => $("file").click());
+    $("file").addEventListener("change",async event => {
+      const file=event.target.files[0]; if(!file)return;
+      try { readWorkbook(await file.arrayBuffer(),file.name); } catch(error) { showError(error.message||"That spreadsheet could not be read."); }
+      event.target.value="";
+    });
+    $("search").addEventListener("input",event=>{state.search=event.target.value;renderCards();});
+    $("clear").addEventListener("click",()=>{state.search="";state.category="All recipes";state.tag="";$("search").value="";renderFilters();renderCards();});
+    $("close-dialog").addEventListener("click",()=>$("recipe-dialog").close());
+    $("recipe-dialog").addEventListener("close",()=>document.body.classList.remove("modal-open"));
+    $("recipe-dialog").addEventListener("click",event=>{if(event.target===$("recipe-dialog"))$("recipe-dialog").close();});
+    loadDefault();
+  </script>
+</body>
+</html>
