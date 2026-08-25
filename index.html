@@ -104,7 +104,11 @@
     .pending p { margin:6px 0 0; }
     .modal-tags { display:flex; flex-wrap:wrap; gap:7px; padding:0 clamp(26px,7vw,80px) 26px; }
     .modal-tags span { padding:5px 9px; border-radius:999px; color:var(--sage); background:var(--sage-pale); font-size:.73rem; }
-    .workbook-note { margin:0; padding:18px clamp(26px,7vw,80px); border-top:1px solid var(--line); background:var(--card); color:var(--muted); font-size:.76rem; }
+    .important-notes { margin:0 clamp(26px,7vw,80px) clamp(34px,6vw,64px); padding:24px 26px; border-left:4px solid var(--gold); background:#fff7df; }
+    .important-notes h3 { margin:3px 0 12px; font:700 clamp(1.3rem,3vw,1.8rem) Georgia,serif; }
+    .important-notes ul { margin:0; padding-left:1.2rem; }
+    .important-notes li { margin:8px 0; color:#4c4438; line-height:1.55; }
+    .important-notes.variation-notes { background:#f6e8e1; border-left-color:var(--red); }
     @media(max-width:900px) { .hero,.update { grid-template-columns:1fr; } .hero-note { max-width:360px; border-radius:22px; text-align:left; } .library-head { align-items:stretch; flex-direction:column; } .recipe-grid { grid-template-columns:1fr; } .card { min-height:290px; } .update .button { grid-column:1; } }
     @media(max-width:700px) { dialog { width:100%; max-height:100vh; min-height:100vh; border-radius:0; } .variation-list,.recipe-body { grid-template-columns:1fr; } }
     @media(max-width:560px) { header { padding:0 20px; } #status { display:none; } .hero,main>section.library,.update { padding-left:20px; padding-right:20px; } h1 { font-size:clamp(3rem,16vw,4.8rem); } footer { align-items:flex-start; flex-direction:column; } }
@@ -324,9 +328,19 @@
         if (state.variation.steps) changeBody.appendChild(contentSection("Method changes",lines(state.variation.steps),true));
         changes.appendChild(changeBody); root.appendChild(changes);
       }
+      if (recipe.notes) root.appendChild(notesSection("Important notes",recipe.notes,""));
+      if (state.variation && state.variation.notes) root.appendChild(notesSection("Notes for “"+state.variation.name+"”",state.variation.notes,"variation-notes"));
       if (recipe.tags.length) { const tagRow=make("div","modal-tags"); recipe.tags.forEach(tag=>appendText(tagRow,"span","",tag)); root.appendChild(tagRow); }
-      if (recipe.notes) appendText(root,"p","workbook-note","Workbook note: "+recipe.notes);
       $("dialog-content").replaceChildren(root);
+    }
+
+    function notesSection(title,text,extraClass) {
+      const section=make("section","important-notes"+(extraClass?" "+extraClass:""));
+      appendText(section,"h3","",title);
+      const list=make("ul","");
+      lines(text).forEach(item=>appendText(list,"li","",item));
+      section.appendChild(list);
+      return section;
     }
 
     function contentSection(title,items,ordered) {
