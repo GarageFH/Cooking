@@ -9,14 +9,14 @@
   <style>
     :root {
       --ink:#2b241d; --muted:#746a60; --paper:#fbf7ef; --card:#fffdf8;
-      --line:#ddd1bf; --red:#b64d35; --red-dark:#873825; --sage:#58705a;
+      --line:#ddd1bf; --red:#b64d35; --red-dark:#873825; --sage:#58705a; --gold:#c79236;
       --sage-pale:#e8efe5; --shadow:0 24px 70px rgba(54,39,27,.16);
     }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
     body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 Arial,Helvetica,sans-serif; }
     body.modal-open { overflow:hidden; }
-    button,input { font:inherit; }
+    button,input,textarea,select { font:inherit; }
     button { color:inherit; }
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
     header { min-height:74px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 6vw; border-bottom:1px solid var(--line); }
@@ -25,6 +25,11 @@
     .header-actions { display:flex; align-items:center; justify-content:flex-end; gap:14px; }
     #status { margin:0; color:var(--muted); font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; }
     .button { display:inline-flex; align-items:center; justify-content:center; padding:9px 14px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); cursor:pointer; text-decoration:none; }
+    .button.primary { border-color:var(--red); color:#fff; background:var(--red); }
+    .button.sage { border-color:var(--sage); color:#fff; background:var(--sage); }
+    .button:disabled { opacity:.5; cursor:not-allowed; }
+    .pending-count { display:none; padding:3px 7px; border-radius:999px; color:#fff; background:var(--red); font-size:.7rem; font-weight:700; }
+    .pending-count.visible { display:inline-block; }
     .hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,350px); gap:8vw; align-items:end; padding:clamp(64px,10vw,125px) 6vw clamp(58px,8vw,94px); border-bottom:1px solid var(--line); background:radial-gradient(circle at 89% 19%,rgba(182,77,53,.14),transparent 24%),linear-gradient(135deg,#fbf7ef,#f1e7d8); }
     .eyebrow { margin:0 0 13px; color:var(--red-dark); font-size:.73rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
     h1,h2,h3 { margin:0; font-family:Georgia,"Times New Roman",serif; font-weight:500; letter-spacing:-.035em; }
@@ -63,6 +68,8 @@
     .tags span { padding:5px 8px; border-radius:999px; color:var(--sage); background:var(--sage-pale); font-size:.72rem; }
     .card-foot { margin-top:auto; padding-top:17px; border-top:1px solid var(--line); }
     .card-foot button { border:0; background:transparent; color:var(--red-dark); cursor:pointer; font-weight:700; text-transform:none; }
+    .card-actions { display:flex; align-items:center; gap:12px; }
+    .card-actions .edit-card { color:var(--sage); font-weight:400; }
     .update { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:7vw; padding:clamp(58px,8vw,100px) 6vw; color:#f7f2e9; background:#303930; }
     .update .eyebrow { color:#dfb5a8; }
     .update ol { margin:0; padding:0; list-style:none; }
@@ -71,6 +78,8 @@
     .update li p { margin:0; color:#d5ddd3; }
     .update li strong { color:#fff; }
     .update .button { grid-column:2; justify-self:start; color:#303930; background:#f5e7d4; }
+    .update-actions { grid-column:2; display:flex; flex-wrap:wrap; gap:10px; }
+    .update-actions .button { grid-column:auto; justify-self:auto; }
     footer { display:flex; justify-content:space-between; gap:18px; padding:24px 6vw; color:var(--muted); font-size:.78rem; }
     dialog { width:min(1080px,calc(100% - 40px)); max-height:calc(100vh - 40px); padding:0; border:0; border-radius:22px; background:var(--paper); color:var(--ink); box-shadow:var(--shadow); }
     dialog::backdrop { background:rgba(34,27,21,.66); backdrop-filter:blur(7px); }
@@ -89,6 +98,7 @@
     .variation-note { margin:30px clamp(26px,7vw,80px) 0; padding:19px; border-left:4px solid var(--red); background:#f6e8e1; }
     .variation-note strong { display:block; }
     .variation-note p { margin:6px 0 0; color:var(--muted); }
+    .variation-note .button { margin-top:12px; padding:7px 11px; background:var(--card); }
     .recipe-body { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:7vw; padding:clamp(40px,7vw,80px); }
     .variation-adjustments { margin:0 clamp(26px,7vw,80px) clamp(40px,7vw,70px); padding:28px; border:1px solid rgba(88,112,90,.35); border-radius:16px; background:var(--sage-pale); }
     .variation-adjustments>h3 { margin-bottom:20px; font-size:1.65rem; }
@@ -111,9 +121,46 @@
     .important-notes li { margin:8px 0; color:#4c4438; line-height:1.55; }
     .important-notes li strong { color:var(--red-dark); margin-right:.35rem; }
     .important-notes.variation-notes { background:#f6e8e1; border-left-color:var(--red); }
-    @media(max-width:900px) { .hero,.update { grid-template-columns:1fr; } .hero-note { max-width:360px; border-radius:22px; text-align:left; } .library-head { align-items:stretch; flex-direction:column; } .recipe-grid { grid-template-columns:1fr; } .card { min-height:290px; } .update .button { grid-column:1; } }
-    @media(max-width:700px) { dialog { width:100%; max-height:100vh; min-height:100vh; border-radius:0; } .variation-list,.recipe-body { grid-template-columns:1fr; } }
-    @media(max-width:560px) { header { padding:0 20px; } #status { display:none; } .hero,main>section.library,.update { padding-left:20px; padding-right:20px; } h1 { font-size:clamp(3rem,16vw,4.8rem); } footer { align-items:flex-start; flex-direction:column; } }
+    .editor-dialog { width:min(980px,calc(100% - 32px)); }
+    .editor-shell { min-height:600px; }
+    .editor-head { padding:44px clamp(24px,6vw,64px) 26px; border-bottom:1px solid var(--line); background:linear-gradient(140deg,#f7eddf,#eef3ea); }
+    .editor-head h2 { max-width:760px; font-size:clamp(2.2rem,5vw,4.2rem); }
+    .editor-head>p:last-child { max-width:740px; margin:15px 0 0; color:var(--muted); }
+    .editor-tabs { display:flex; gap:8px; padding:18px clamp(24px,6vw,64px); border-bottom:1px solid var(--line); background:var(--card); }
+    .editor-tabs button { padding:9px 15px; border:1px solid var(--line); border-radius:999px; background:transparent; cursor:pointer; }
+    .editor-tabs button.active { border-color:var(--sage); color:#fff; background:var(--sage); }
+    .editor-form { padding:34px clamp(24px,6vw,64px) 46px; }
+    .editor-form[hidden] { display:none; }
+    .form-section { padding:0 0 34px; margin:0 0 34px; border:0; border-bottom:1px solid var(--line); }
+    .form-section:last-of-type { border-bottom:0; }
+    .form-section legend { width:100%; padding:0; margin:0 0 7px; font:600 1.55rem Georgia,serif; }
+    .section-help { margin:0 0 20px; color:var(--muted); font-size:.9rem; }
+    .field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+    .field-grid .wide { grid-column:1/-1; }
+    .field { display:flex; flex-direction:column; gap:7px; }
+    .field>span,.field>label { color:#4f463d; font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+    .field input,.field textarea,.field select,.repeat-row input,.repeat-row textarea,.repeat-row select { width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; outline:0; background:#fffefa; color:var(--ink); }
+    .field textarea { min-height:92px; resize:vertical; }
+    .field input:focus,.field textarea:focus,.field select:focus,.repeat-row input:focus,.repeat-row textarea:focus,.repeat-row select:focus { border-color:var(--sage); box-shadow:0 0 0 3px rgba(88,112,90,.12); }
+    .field small { color:var(--muted); }
+    .check-field { display:flex; align-items:center; gap:9px; padding-top:26px; }
+    .check-field input { width:18px; height:18px; accent-color:var(--sage); }
+    .repeat-list { display:flex; flex-direction:column; gap:10px; }
+    .repeat-row { display:grid; grid-template-columns:minmax(0,1fr) 40px; gap:9px; align-items:start; }
+    .repeat-row.step-row { grid-template-columns:minmax(125px,.32fr) minmax(0,1fr) 40px; }
+    .repeat-row.note-row { grid-template-columns:minmax(135px,.34fr) minmax(0,1fr) 40px; }
+    .repeat-row textarea { min-height:58px; resize:vertical; }
+    .remove-row { width:40px; height:40px; border:1px solid var(--line); border-radius:50%; background:transparent; color:var(--muted); cursor:pointer; }
+    .add-row { margin-top:12px; padding:8px 12px; border:1px dashed var(--sage); border-radius:999px; background:var(--sage-pale); color:var(--sage); cursor:pointer; }
+    .tag-suggestions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .tag-suggestions button { padding:5px 9px; border:0; border-radius:999px; color:var(--sage); background:var(--sage-pale); cursor:pointer; font-size:.76rem; }
+    .form-feedback { min-height:24px; margin:0; color:var(--red-dark); font-weight:700; }
+    .form-feedback.success { color:var(--sage); }
+    .form-actions { position:sticky; bottom:0; display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; padding:16px 0 0; background:linear-gradient(transparent,var(--paper) 20%); }
+    .form-actions .quiet { margin-right:auto; color:var(--muted); font-size:.84rem; }
+    @media(max-width:900px) { .hero,.update { grid-template-columns:1fr; } .hero-note { max-width:360px; border-radius:22px; text-align:left; } .library-head { align-items:stretch; flex-direction:column; } .recipe-grid { grid-template-columns:1fr; } .card { min-height:290px; } .update .button,.update-actions { grid-column:1; } }
+    @media(max-width:700px) { dialog { width:100%; max-height:100vh; min-height:100vh; border-radius:0; } .variation-list,.recipe-body,.field-grid { grid-template-columns:1fr; } .field-grid .wide { grid-column:1; } .repeat-row.step-row,.repeat-row.note-row { grid-template-columns:1fr 40px; } .repeat-row.step-row>:first-child,.repeat-row.note-row>:first-child { grid-column:1; } .repeat-row.step-row>:nth-child(2),.repeat-row.note-row>:nth-child(2) { grid-column:1; } .repeat-row.step-row>.remove-row,.repeat-row.note-row>.remove-row { grid-column:2; grid-row:1; } }
+    @media(max-width:560px) { header { padding:10px 20px; align-items:flex-start; } .header-actions { flex-wrap:wrap; gap:7px; } #status { width:100%; order:3; text-align:right; } .hero,main>section.library,.update { padding-left:20px; padding-right:20px; } h1 { font-size:clamp(3rem,16vw,4.8rem); } footer { align-items:flex-start; flex-direction:column; } }
   </style>
 </head>
 <body>
@@ -123,6 +170,8 @@
       <p id="status">Loading Recipes.ods…</p>
       <input class="sr-only" id="file" type="file" accept=".ods,.xlsx,.xls">
       <button class="button" id="open-file" type="button">Open ODS</button>
+      <button class="button primary" id="open-editor" type="button" disabled>Add recipe</button>
+      <button class="button" id="download-workbook" type="button" disabled>Download ODS <span class="pending-count" id="pending-count">0</span></button>
     </div>
   </header>
 
@@ -153,13 +202,16 @@
     </section>
 
     <section class="update" aria-labelledby="update-title">
-      <div><p class="eyebrow">Adding recipes stays simple</p><h2 id="update-title">One row in the ODS becomes one recipe card.</h2></div>
+      <div><p class="eyebrow">Add or edit without opening the spreadsheet</p><h2 id="update-title">Use the guided editor, then download the updated ODS.</h2></div>
       <ol>
-        <li><span>1</span><p><strong>Edit Recipes.ods.</strong> Add a row to Recipes. Use Variations only for another health, taste, topping or method option.</p></li>
-        <li><span>2</span><p><strong>Keep the same file name.</strong> Put Recipes.ods beside index.html in the GitHub repository.</p></li>
-        <li><span>3</span><p><strong>Refresh the site.</strong> Categories, tags, cards and variation choices are rebuilt from the spreadsheet.</p></li>
+        <li><span>1</span><p><strong>Change the working copy.</strong> Add a recipe from the header, or use Edit on any existing recipe and variation. Every field is populated from the ODS.</p></li>
+        <li><span>2</span><p><strong>Review it on this page.</strong> New entries appear immediately, but remain only in this browser until you download the file.</p></li>
+        <li><span>3</span><p><strong>Replace Recipes.ods on GitHub.</strong> GitHub Pages cannot overwrite the repository itself, so upload the downloaded file beside index.html.</p></li>
       </ol>
-      <a class="button" href="Recipes.ods" download>Download Recipes.ods ↓</a>
+      <div class="update-actions">
+        <button class="button" id="open-editor-bottom" type="button" disabled>Add recipe or variation</button>
+        <button class="button" id="download-workbook-bottom" type="button" disabled>Download updated Recipes.ods ↓</button>
+      </div>
     </section>
   </main>
 
@@ -170,14 +222,136 @@
     <div id="dialog-content"></div>
   </dialog>
 
+  <dialog class="editor-dialog" id="editor-dialog">
+    <button class="close" id="close-editor" type="button" aria-label="Close editor">×</button>
+    <div class="editor-shell">
+      <section class="editor-head">
+        <p class="eyebrow">Recipe editor</p>
+        <h2 id="editor-title">Add to your collection.</h2>
+        <p id="editor-intro">Save entries to the working copy, check how they read on the site, then download one updated Recipes.ods file.</p>
+      </section>
+      <div class="editor-tabs" role="tablist" aria-label="What to add">
+        <button class="active" id="recipe-tab" type="button" role="tab" aria-selected="true">New recipe</button>
+        <button id="variation-tab" type="button" role="tab" aria-selected="false">New variation</button>
+      </div>
+
+      <form class="editor-form" id="recipe-form" novalidate>
+        <fieldset class="form-section">
+          <legend>1. Identity and discovery</legend>
+          <p class="section-help">These fields create the card and make the recipe searchable. Existing values are suggested, but new categories and tags are allowed.</p>
+          <div class="field-grid">
+            <label class="field"><span>Recipe name *</span><input id="recipe-name" name="recipe-name" required maxlength="120" placeholder="Orange-Yogurt Almond-Oat Cake"></label>
+            <label class="field"><span>Kind *</span><select id="recipe-kind" required><option>Recipe</option><option>Component</option></select></label>
+            <label class="field"><span>Category *</span><input id="recipe-category" list="category-options" required placeholder="Desserts & Sweets"></label>
+            <label class="field"><span>Subcategory</span><input id="recipe-subcategory" list="subcategory-options" placeholder="Cakes"></label>
+            <label class="field"><span>Primary method</span><input id="recipe-method" list="method-options" placeholder="Oven, stovetop, air fryer…"></label>
+            <label class="field"><span>Parent recipe or collection</span><select id="recipe-parent"><option value="">None</option></select></label>
+            <label class="field wide"><span>Short summary *</span><textarea id="recipe-summary" required maxlength="320" placeholder="What makes this recipe distinct, in one or two useful sentences."></textarea></label>
+            <label class="field wide"><span>Tags</span><input id="recipe-tags" list="tag-options" placeholder="eggless, oven, oats, orange"><small>Separate tags with commas. Click a suggestion to add it.</small><span class="tag-suggestions" id="tag-suggestions"></span></label>
+            <label class="check-field"><input id="recipe-show" type="checkbox" checked> Show this entry on the website</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend>2. Ingredients</legend>
+          <p class="section-help">Use one complete ingredient per field. Include quantity, unit, preparation and whether it is optional.</p>
+          <div class="repeat-list" id="recipe-ingredient-list"></div>
+          <button class="add-row" type="button" data-add="ingredient" data-target="recipe-ingredient-list">+ Add ingredient</button>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend>3. Method</legend>
+          <p class="section-help">Give each step a short stage and one complete action. Include texture, visual or doneness cues when they change the outcome.</p>
+          <div class="repeat-list" id="recipe-step-list"></div>
+          <button class="add-row" type="button" data-add="step" data-target="recipe-step-list">+ Add method step</button>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend>4. The details that give it soul</legend>
+          <p class="section-help">Add only notes that prevent failure, explain why something works, or improve finishing, serving, storage or substitutions.</p>
+          <div class="repeat-list" id="recipe-note-list"></div>
+          <button class="add-row" type="button" data-add="note" data-target="recipe-note-list">+ Add practical note</button>
+        </fieldset>
+
+        <p class="form-feedback" id="recipe-feedback" role="status"></p>
+        <div class="form-actions">
+          <span class="quiet">* Required</span>
+          <button class="button" id="recipe-save-next" type="submit" data-next="variation">Save and add a variation</button>
+          <button class="button primary" id="recipe-save" type="submit">Save recipe</button>
+        </div>
+      </form>
+
+      <form class="editor-form" id="variation-form" novalidate hidden>
+        <fieldset class="form-section">
+          <legend>1. What does this version belong to?</legend>
+          <p class="section-help">A variation inherits the complete base recipe. Record only what changes.</p>
+          <div class="field-grid">
+            <label class="field"><span>Base recipe *</span><select id="variation-recipe" required><option value="">Choose a recipe</option></select></label>
+            <label class="field"><span>Variation name *</span><input id="variation-name" required maxlength="120" placeholder="Healthier oat-forward version"></label>
+            <label class="field"><span>Variation type *</span><input id="variation-type" list="variation-type-options" required placeholder="Health, Taste, Method, Topping…"></label>
+            <label class="field"><span>Health / taste position</span><input id="variation-position" list="position-options" placeholder="Healthier; Texture"></label>
+            <label class="field"><span>Method</span><input id="variation-method" list="method-options" placeholder="Oven"></label>
+            <label class="field"><span>Batch or pan</span><input id="variation-batch" placeholder="7-inch, 500 g, serves 4…"></label>
+            <label class="field wide"><span>What changes *</span><textarea id="variation-changes" required maxlength="600" placeholder="A concise explanation of how this version differs from the base recipe."></textarea></label>
+            <label class="check-field"><input id="variation-default" type="checkbox"> Make this the default variation</label>
+            <label class="check-field"><input id="variation-show" type="checkbox" checked> Show this variation on the website</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend>2. Ingredient changes</legend>
+          <p class="section-help">List only replacements, additions or changed quantities. Leave blank when “What changes” is sufficient.</p>
+          <div class="repeat-list" id="variation-ingredient-list"></div>
+          <button class="add-row" type="button" data-add="ingredient" data-target="variation-ingredient-list">+ Add ingredient change</button>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend>3. Method changes</legend>
+          <p class="section-help">List only changed steps; the website continues to show the complete base method.</p>
+          <div class="repeat-list" id="variation-step-list"></div>
+          <button class="add-row" type="button" data-add="step" data-target="variation-step-list">+ Add method change</button>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend>4. Variation notes</legend>
+          <p class="section-help">Use this only for a warning, technique or serving detail specific to this version.</p>
+          <div class="repeat-list" id="variation-note-list"></div>
+          <button class="add-row" type="button" data-add="note" data-target="variation-note-list">+ Add variation note</button>
+        </fieldset>
+
+        <p class="form-feedback" id="variation-feedback" role="status"></p>
+        <div class="form-actions">
+          <span class="quiet">* Required</span>
+          <button class="button" id="variation-save-next" type="submit" data-next="another">Save and add another</button>
+          <button class="button primary" id="variation-save" type="submit">Save variation</button>
+        </div>
+      </form>
+    </div>
+
+    <datalist id="category-options"></datalist>
+    <datalist id="subcategory-options"></datalist>
+    <datalist id="method-options"></datalist>
+    <datalist id="tag-options"></datalist>
+    <datalist id="stage-options">
+      <option value="Prepare"><option value="Pan"><option value="Flour prep"><option value="Dry mixture"><option value="Wet mixture"><option value="Combine"><option value="Consistency"><option value="Rest"><option value="Proof"><option value="Knead"><option value="Shape"><option value="Assemble"><option value="Cook"><option value="Bake"><option value="Air-fry"><option value="Pressure-cook"><option value="Finish"><option value="Cool"><option value="Serve">
+    </datalist>
+    <datalist id="variation-type-options">
+      <option value="Base"><option value="Health"><option value="Taste"><option value="Diet"><option value="Ingredient"><option value="Method"><option value="Texture"><option value="Topping"><option value="Serving"><option value="Batch">
+    </datalist>
+    <datalist id="position-options">
+      <option value="Balanced"><option value="Healthier"><option value="Richer"><option value="Taste"><option value="Texture"><option value="Diet"><option value="Serving">
+    </datalist>
+  </dialog>
+
   <noscript>This site needs JavaScript to read Recipes.ods.</noscript>
 
   <script>
     "use strict";
     const DEFAULT_FILE = "Recipes.ods";
-    const state = { recipes: [], variations: [], search: "", category: "All recipes", tag: "", selected: null, variation: null };
+    const state = { recipes: [], variations: [], search: "", category: "All recipes", tag: "", selected: null, variation: null, book: null, sourceLabel: "", pendingChanges: 0, editor: { action:"add", entity:"recipe", rowIndex:null, originalName:"" } };
     const $ = id => document.getElementById(id);
     const value = (row, key) => String(row[key] == null ? "" : row[key]).trim();
+    const sameText = (left, right) => String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
     const visible = row => value(row, "Show").toLowerCase() !== "no";
     const tags = input => input.split(",").map(item => item.trim()).filter(Boolean);
     const lines = input => input.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
@@ -192,31 +366,55 @@
     function readWorkbook(buffer, label) {
       if (!window.XLSX) throw new Error("The spreadsheet reader could not be loaded. Check the internet connection and try again.");
       const book = XLSX.read(buffer, { type: "array" });
+      hydrateWorkbook(book, label, true);
+    }
+
+    function hydrateWorkbook(book, label, resetPending) {
       if (!book.Sheets.Recipes) throw new Error("The ODS needs a sheet named Recipes.");
-      const recipeRows = XLSX.utils.sheet_to_json(book.Sheets.Recipes, { defval: "" });
-      const variationRows = book.Sheets.Variations ? XLSX.utils.sheet_to_json(book.Sheets.Variations, { defval: "" }) : [];
+      if (!book.Sheets.Variations) throw new Error("The ODS needs a sheet named Variations.");
+      validateSheetHeaders(book.Sheets.Recipes,"Recipes",["Recipe","Kind","Category","Subcategory","Summary","Method","Tags","Parent Recipe","Ingredients","Steps","Notes","Show"]);
+      validateSheetHeaders(book.Sheets.Variations,"Variations",["Recipe","Variation","Type","Health / Taste","Method","Batch / Pan","What Changes","Ingredients","Steps","Default","Notes","Show"]);
+      state.book = book;
+      state.sourceLabel = label;
+      if (resetPending) state.pendingChanges = 0;
+      const recipeRows = indexedSheetRows(book.Sheets.Recipes);
+      const variationRows = indexedSheetRows(book.Sheets.Variations);
 
       state.recipes = recipeRows.filter(visible).map(row => ({
         name:value(row,"Recipe"), kind:value(row,"Kind")||"Recipe", category:value(row,"Category")||"Uncategorised",
         subcategory:value(row,"Subcategory"), summary:value(row,"Summary"), method:value(row,"Method"),
         tags:tags(value(row,"Tags")), parent:value(row,"Parent Recipe"), ingredients:value(row,"Ingredients"),
-        steps:value(row,"Steps"), notes:value(row,"Notes")
+        steps:value(row,"Steps"), notes:value(row,"Notes"), show:value(row,"Show").toLowerCase()!=="no", rowIndex:row.__rowIndex
       })).filter(recipe => recipe.name);
       state.variations = variationRows.filter(visible).map(row => ({
         recipe:value(row,"Recipe"), name:value(row,"Variation"), type:value(row,"Type"), position:value(row,"Health / Taste"),
         method:value(row,"Method"), batch:value(row,"Batch / Pan"), changes:value(row,"What Changes"),
-        ingredients:value(row,"Ingredients"), steps:value(row,"Steps"), isDefault:value(row,"Default").toLowerCase()==="yes", notes:value(row,"Notes")
+        ingredients:value(row,"Ingredients"), steps:value(row,"Steps"), isDefault:value(row,"Default").toLowerCase()==="yes", notes:value(row,"Notes"), show:value(row,"Show").toLowerCase()!=="no", rowIndex:row.__rowIndex
       })).filter(item => item.recipe && item.name);
 
-      state.search = ""; state.category = "All recipes"; state.tag = "";
-      $("search").value = "";
+      if (resetPending) { state.search = ""; state.category = "All recipes"; state.tag = ""; $("search").value = ""; }
       $("status").textContent = state.recipes.length + " entries · " + state.variations.length + " variations";
       $("source").textContent = "Live from " + label;
       const masterCount = state.recipes.filter(recipe => recipe.kind.toLowerCase() !== "component").length;
       $("recipe-count").textContent = masterCount + " recipes";
       $("variation-count").textContent = (state.recipes.length-masterCount) + " components and " + state.variations.length + " variations";
       $("notice").hidden = true;
-      renderFilters(); renderCards();
+      updateWorkbookActions(); renderEditorOptions(); renderFilters(); renderCards();
+    }
+
+    function validateSheetHeaders(sheet, sheetName, required) {
+      const firstRow=XLSX.utils.sheet_to_json(sheet,{header:1,defval:"",blankrows:false})[0]||[];
+      const headers=firstRow.map(header=>String(header).trim());
+      const missing=required.filter(header=>!headers.includes(header));
+      if (missing.length) throw new Error(sheetName+" is missing these columns: "+missing.join(", ")+".");
+    }
+
+    function indexedSheetRows(sheet) {
+      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:"",blankrows:true});
+      const headers=(matrix[0]||[]).map(header=>String(header).trim());
+      return matrix.slice(1).map((cells,index)=>{
+        const row={__rowIndex:index+1}; headers.forEach((header,column)=>row[header]=cells[column]??""); return row;
+      }).filter(row=>headers.some(header=>String(row[header]??"").trim()));
     }
 
     async function loadDefault() {
@@ -293,14 +491,16 @@
       appendText(card,"p","",recipe.summary || "Open this entry to see its workbook details and variations.");
       const tagRow = make("div","tags"); recipe.tags.slice(0,4).forEach(tag => appendText(tagRow,"span","",tag)); card.appendChild(tagRow);
       const foot = make("div","card-foot"); appendText(foot,"span","",recipe.method||recipe.category);
-      const open = make("button","","Read recipe →"); open.type="button"; open.addEventListener("click",() => openRecipe(recipe)); foot.appendChild(open); card.appendChild(foot);
+      const actions=make("div","card-actions");
+      const edit=make("button","edit-card","Edit"); edit.type="button"; edit.addEventListener("click",()=>openRecipeEditor(recipe));
+      const open = make("button","","Read recipe →"); open.type="button"; open.addEventListener("click",() => openRecipe(recipe)); actions.append(edit,open); foot.appendChild(actions); card.appendChild(foot);
       return card;
     }
 
-    function openRecipe(recipe) {
+    function openRecipe(recipe, variationName="") {
       state.selected = recipe;
-      const options = state.variations.filter(item => item.recipe === recipe.name);
-      state.variation = options.find(item => item.isDefault) || options[0] || null;
+      const options = state.variations.filter(item => sameText(item.recipe,recipe.name));
+      state.variation = options.find(item => sameText(item.name,variationName)) || options.find(item => item.isDefault) || options[0] || null;
       renderDialog();
       $("recipe-dialog").showModal();
       document.body.classList.add("modal-open");
@@ -308,10 +508,12 @@
 
     function renderDialog() {
       const recipe = state.selected;
-      const options = state.variations.filter(item => item.recipe === recipe.name);
+      const options = state.variations.filter(item => sameText(item.recipe,recipe.name));
       const root = document.createDocumentFragment();
       const head = make("section","modal-head"); appendText(head,"p","eyebrow",recipe.category + (recipe.subcategory ? " · " + recipe.subcategory : "")); appendText(head,"h2","",recipe.name); appendText(head,"p","modal-summary",recipe.summary);
-      const meta = make("div","meta"); [recipe.method,recipe.parent ? "Part of " + recipe.parent : "",options.length + (options.length===1?" variation":" variations")].filter(Boolean).forEach(item => appendText(meta,"span","",item)); head.appendChild(meta); root.appendChild(head);
+      const meta = make("div","meta"); [recipe.method,recipe.parent ? "Part of " + recipe.parent : "",options.length + (options.length===1?" variation":" variations")].filter(Boolean).forEach(item => appendText(meta,"span","",item));
+      const editRecipe=make("button","button","Edit recipe"); editRecipe.type="button"; editRecipe.addEventListener("click",()=>{$("recipe-dialog").close();openRecipeEditor(recipe);});
+      const addVariation=make("button","button","+ Add variation"); addVariation.type="button"; addVariation.addEventListener("click",()=>{$("recipe-dialog").close();openEditor("variation",recipe.name);}); meta.append(editRecipe,addVariation); head.appendChild(meta); root.appendChild(head);
 
       if (options.length) {
         const box = make("section","variation-box"); appendText(box,"p","eyebrow","Choose your version"); appendText(box,"h3","","Health, taste and method variations");
@@ -320,7 +522,7 @@
           button.addEventListener("click",()=>{state.variation=option;renderDialog();}); list.appendChild(button);
         }); box.appendChild(list); root.appendChild(box);
       }
-      if (state.variation) { const note=make("section","variation-note"); appendText(note,"strong","",state.variation.name); appendText(note,"p","",state.variation.changes||state.variation.notes||"Use this variation's ingredient and method fields when they are provided."); root.appendChild(note); }
+      if (state.variation) { const note=make("section","variation-note"); appendText(note,"strong","",state.variation.name); appendText(note,"p","",state.variation.changes||state.variation.notes||"Use this variation's ingredient and method fields when they are provided."); const editVariation=make("button","button","Edit this variation"); editVariation.type="button"; editVariation.addEventListener("click",()=>{$("recipe-dialog").close();openVariationEditor(state.variation);}); note.appendChild(editVariation); root.appendChild(note); }
 
       const body=make("div","recipe-body"); body.appendChild(contentSection("Ingredients",lines(recipe.ingredients),false)); body.appendChild(contentSection("Method",lines(recipe.steps),true)); root.appendChild(body);
       if (state.variation && (state.variation.ingredients || state.variation.steps)) {
@@ -367,7 +569,7 @@
     function appendMethodStep(list,item) {
       const li=make("li","");
       const clean=item.replace(/^\d+[.)]\s*/,"");
-      const match=clean.match(/^([A-Za-z][A-Za-z -]{1,24})\s+—\s+(.*)$/);
+      const match=clean.match(/^([A-Za-z][A-Za-z -]{1,28})\s+—\s+(.*)$/);
       if (match) {
         appendText(li,"strong","",match[1]);
         li.appendChild(document.createTextNode(match[2]));
@@ -377,16 +579,341 @@
       list.appendChild(li);
     }
 
+    const NOTE_TYPES = ["Technique","Warning","Why it works","Finish","Serving","Storage","Substitution"];
+
+    function updateWorkbookActions() {
+      const loaded = Boolean(state.book);
+      ["open-editor","open-editor-bottom","download-workbook","download-workbook-bottom"].forEach(id => $(id).disabled = !loaded);
+      const badge = $("pending-count");
+      badge.textContent = state.pendingChanges;
+      badge.classList.toggle("visible", state.pendingChanges > 0);
+      if (loaded) $("status").textContent = state.recipes.length + " entries · " + state.variations.length + " variations" + (state.pendingChanges ? " · " + state.pendingChanges + " pending" : "");
+    }
+
+    function sortedUnique(values) {
+      const unique=new Map(); values.map(item=>String(item||"").trim()).filter(Boolean).forEach(item=>{if(!unique.has(item.toLowerCase()))unique.set(item.toLowerCase(),item);});
+      return [...unique.values()].sort((a,b) => a.localeCompare(b));
+    }
+
+    function uniqueInOrder(values) {
+      const seen=new Set(), result=[];
+      values.map(item=>String(item||"").trim()).filter(Boolean).forEach(item=>{const key=item.toLowerCase();if(!seen.has(key)){seen.add(key);result.push(item);}});
+      return result;
+    }
+
+    function fillDatalist(id, values) {
+      $(id).replaceChildren(...sortedUnique(values).map(value => {
+        const option = document.createElement("option"); option.value = value; return option;
+      }));
+    }
+
+    function fillRecipeSelect(id, firstLabel) {
+      const select = $(id); const current = select.value;
+      const first = document.createElement("option"); first.value = ""; first.textContent = firstLabel;
+      const options = [...state.recipes].sort((a,b) => a.name.localeCompare(b.name)).map(recipe => {
+        const option = document.createElement("option"); option.value = recipe.name; option.textContent = recipe.name; return option;
+      });
+      select.replaceChildren(first,...options);
+      if ([...select.options].some(option => option.value === current)) select.value = current;
+    }
+
+    function renderEditorOptions() {
+      fillDatalist("category-options", state.recipes.map(recipe => recipe.category));
+      fillDatalist("subcategory-options", state.recipes.map(recipe => recipe.subcategory));
+      fillDatalist("method-options", [...state.recipes.map(recipe => recipe.method),...state.variations.map(item => item.method)]);
+      const tagCounts = new Map();
+      state.recipes.forEach(recipe => recipe.tags.forEach(tag => tagCounts.set(tag,(tagCounts.get(tag)||0)+1)));
+      fillDatalist("tag-options", [...tagCounts.keys()]);
+      fillRecipeSelect("recipe-parent","None");
+      fillRecipeSelect("variation-recipe","Choose a recipe");
+      const suggestions = [...tagCounts.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,14);
+      $("tag-suggestions").replaceChildren(...suggestions.map(([tag]) => {
+        const button=make("button","",tag); button.type="button"; button.addEventListener("click",()=>addSuggestedTag(tag)); return button;
+      }));
+    }
+
+    function addSuggestedTag(tag) {
+      const input = $("recipe-tags");
+      const current = tags(input.value);
+      if (!current.some(item => item.toLowerCase() === tag.toLowerCase())) current.push(tag);
+      input.value = current.join(", ");
+    }
+
+    function setEditorMode(mode) {
+      const recipeMode = mode === "recipe";
+      $("recipe-form").hidden = !recipeMode;
+      $("variation-form").hidden = recipeMode;
+      $("recipe-tab").classList.toggle("active",recipeMode);
+      $("variation-tab").classList.toggle("active",!recipeMode);
+      $("recipe-tab").setAttribute("aria-selected",String(recipeMode));
+      $("variation-tab").setAttribute("aria-selected",String(!recipeMode));
+      const focusTarget = recipeMode ? $("recipe-name") : $("variation-recipe");
+      setTimeout(()=>focusTarget.focus(),0);
+    }
+
+    function configureEditor() {
+      const editing=state.editor.action==="edit", recipeEntity=state.editor.entity==="recipe";
+      $("editor-title").textContent=editing?(recipeEntity?"Edit this recipe.":"Edit this variation."):"Add to your collection.";
+      $("editor-intro").textContent=editing?"Every field below is populated from Recipes.ods. Save changes to the working copy, review them here, then download the updated ODS.":"Save entries to the working copy, check how they read on the site, then download one updated Recipes.ods file.";
+      $("recipe-tab").textContent=editing&&recipeEntity?"Edit recipe":"New recipe";
+      $("variation-tab").textContent=editing&&!recipeEntity?"Edit variation":"New variation";
+      $("recipe-save").textContent=editing&&recipeEntity?"Save recipe changes":"Save recipe";
+      $("recipe-save-next").textContent=editing&&recipeEntity?"Save changes and add a variation":"Save and add a variation";
+      $("variation-save").textContent=editing&&!recipeEntity?"Save variation changes":"Save variation";
+      $("variation-save-next").textContent=editing&&!recipeEntity?"Save changes and add another":"Save and add another";
+    }
+
+    function openEditor(mode="recipe", recipeName="") {
+      if (!state.book) return;
+      state.editor={action:"add",entity:mode,rowIndex:null,originalName:""};
+      renderEditorOptions();
+      resetRecipeForm(); resetVariationForm(mode === "variation" ? recipeName : "");
+      configureEditor();
+      setEditorMode(mode);
+      $("editor-dialog").showModal();
+      document.body.classList.add("modal-open");
+    }
+
+    function openRecipeEditor(recipe) {
+      if (!state.book) return;
+      state.editor={action:"edit",entity:"recipe",rowIndex:recipe.rowIndex,originalName:recipe.name};
+      renderEditorOptions(); resetRecipeForm(); resetVariationForm(); populateRecipeForm(recipe); configureEditor(); setEditorMode("recipe");
+      $("editor-dialog").showModal(); document.body.classList.add("modal-open");
+    }
+
+    function openVariationEditor(variation) {
+      if (!state.book) return;
+      state.editor={action:"edit",entity:"variation",rowIndex:variation.rowIndex,originalName:variation.name};
+      renderEditorOptions(); resetRecipeForm(); resetVariationForm(variation.recipe); populateVariationForm(variation); configureEditor(); setEditorMode("variation");
+      $("editor-dialog").showModal(); document.body.classList.add("modal-open");
+    }
+
+    function switchEditorEntity(entity) {
+      if (state.editor.action==="edit") {
+        const baseName=state.editor.entity==="recipe"?state.editor.originalName:$("variation-recipe").value;
+        state.editor={action:"add",entity,rowIndex:null,originalName:""};
+        resetRecipeForm(); resetVariationForm(baseName);
+      } else state.editor.entity=entity;
+      configureEditor(); setEditorMode(entity);
+    }
+
+    function clearRepeatList(id) { $(id).replaceChildren(); }
+
+    function resetRecipeForm() {
+      $("recipe-form").reset(); $("recipe-show").checked = true;
+      clearRepeatList("recipe-ingredient-list"); clearRepeatList("recipe-step-list"); clearRepeatList("recipe-note-list");
+      addRepeatRow("ingredient","recipe-ingredient-list",{},false);
+      addRepeatRow("step","recipe-step-list",{stage:"Prepare"},false);
+      setFeedback("recipe-feedback","");
+    }
+
+    function resetVariationForm(recipeName="") {
+      $("variation-form").reset(); $("variation-show").checked = true;
+      clearRepeatList("variation-ingredient-list"); clearRepeatList("variation-step-list"); clearRepeatList("variation-note-list");
+      if (recipeName) $("variation-recipe").value = recipeName;
+      setFeedback("variation-feedback","");
+    }
+
+    function splitStep(item) {
+      const match=item.match(/^([^—]{1,28})\s+—\s+(.*)$/); return match?{stage:match[1].trim(),value:match[2].trim()}:{stage:"Method",value:item};
+    }
+
+    function splitNote(item) {
+      const match=item.match(/^(Technique|Warning|Why it works|Finish|Serving|Storage|Substitution):\s*(.*)$/i);
+      if (!match) return {noteType:"Technique",value:item};
+      const noteType=NOTE_TYPES.find(type=>type.toLowerCase()===match[1].toLowerCase())||"Technique"; return {noteType,value:match[2].trim()};
+    }
+
+    function populateRecipeForm(recipe) {
+      $("recipe-name").value=recipe.name; $("recipe-kind").value=recipe.kind; $("recipe-category").value=recipe.category; $("recipe-subcategory").value=recipe.subcategory;
+      $("recipe-method").value=recipe.method; $("recipe-parent").value=recipe.parent; $("recipe-summary").value=recipe.summary; $("recipe-tags").value=recipe.tags.join(", "); $("recipe-show").checked=recipe.show;
+      clearRepeatList("recipe-ingredient-list"); lines(recipe.ingredients).forEach(value=>addRepeatRow("ingredient","recipe-ingredient-list",{value},false));
+      clearRepeatList("recipe-step-list"); lines(recipe.steps).map(splitStep).forEach(data=>addRepeatRow("step","recipe-step-list",data,false));
+      clearRepeatList("recipe-note-list"); lines(recipe.notes).map(splitNote).forEach(data=>addRepeatRow("note","recipe-note-list",data,false));
+    }
+
+    function populateVariationForm(variation) {
+      $("variation-recipe").value=variation.recipe; $("variation-name").value=variation.name; $("variation-type").value=variation.type; $("variation-position").value=variation.position;
+      $("variation-method").value=variation.method; $("variation-batch").value=variation.batch; $("variation-changes").value=variation.changes; $("variation-default").checked=variation.isDefault; $("variation-show").checked=variation.show;
+      clearRepeatList("variation-ingredient-list"); lines(variation.ingredients).forEach(value=>addRepeatRow("ingredient","variation-ingredient-list",{value},false));
+      clearRepeatList("variation-step-list"); lines(variation.steps).map(splitStep).forEach(data=>addRepeatRow("step","variation-step-list",data,false));
+      clearRepeatList("variation-note-list"); lines(variation.notes).map(splitNote).forEach(data=>addRepeatRow("note","variation-note-list",data,false));
+    }
+
+    function addRepeatRow(type,targetId,data={},shouldFocus=true) {
+      const row=make("div","repeat-row "+(type==="step"?"step-row":type==="note"?"note-row":""));
+      if (type === "ingredient") {
+        const input=document.createElement("input"); input.className="row-value"; input.required=true; input.value=data.value||"";
+        input.placeholder=targetId.startsWith("variation")?"Replacement or addition, with quantity":"Quantity + ingredient + preparation";
+        input.setAttribute("aria-label",targetId.startsWith("variation")?"Ingredient change":"Ingredient"); row.appendChild(input);
+      } else if (type === "step") {
+        const stage=document.createElement("input"); stage.className="row-stage"; stage.required=true; stage.maxLength=28; stage.setAttribute("list","stage-options"); stage.value=data.stage||""; stage.placeholder="Stage"; stage.setAttribute("aria-label","Method stage");
+        const instruction=document.createElement("textarea"); instruction.className="row-value"; instruction.required=true; instruction.value=data.value||""; instruction.placeholder="One complete action, including an important cue when needed"; instruction.setAttribute("aria-label","Method instruction");
+        row.append(stage,instruction);
+      } else {
+        const noteType=document.createElement("select"); noteType.className="row-note-type"; noteType.setAttribute("aria-label","Note type");
+        NOTE_TYPES.forEach(typeName=>{const option=document.createElement("option");option.value=typeName;option.textContent=typeName;noteType.appendChild(option);}); noteType.value=data.noteType||"Technique";
+        const note=document.createElement("textarea"); note.className="row-value"; note.required=true; note.value=data.value||""; note.placeholder="Only a result-changing detail"; note.setAttribute("aria-label","Practical note");
+        row.append(noteType,note);
+      }
+      const remove=make("button","remove-row","×"); remove.type="button"; remove.setAttribute("aria-label","Remove this field"); remove.addEventListener("click",()=>row.remove()); row.appendChild(remove);
+      $(targetId).appendChild(row);
+      if (shouldFocus) row.querySelector(".row-value")?.focus();
+    }
+
+    function collectSimpleRows(id) {
+      return [...$(id).querySelectorAll(".row-value")].map(input=>input.value.trim()).filter(Boolean);
+    }
+
+    function collectStepRows(id) {
+      return [...$(id).querySelectorAll(".step-row")].map(row=>({stage:row.querySelector(".row-stage").value.trim(),value:row.querySelector(".row-value").value.trim()})).filter(item=>item.value).map(item=>item.stage+" — "+item.value);
+    }
+
+    function collectNoteRows(id) {
+      return [...$(id).querySelectorAll(".note-row")].map(row=>({type:row.querySelector(".row-note-type").value,value:row.querySelector(".row-value").value.trim()})).filter(item=>item.value).map(item=>item.type+": "+item.value);
+    }
+
+    function setFeedback(id,message,success=false) {
+      const node=$(id); node.textContent=message; node.classList.toggle("success",success);
+    }
+
+    function sheetRows(sheetName) {
+      return indexedSheetRows(state.book.Sheets[sheetName]);
+    }
+
+    function appendRecord(sheetName,record) {
+      const sheet=state.book.Sheets[sheetName];
+      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:"",blankrows:true});
+      const headers=matrix[0].map(header=>String(header).trim());
+      const row=headers.map(header=>record[header] == null ? "" : record[header]);
+      XLSX.utils.sheet_add_aoa(sheet,[row],{origin:-1});
+    }
+
+    function updateRecord(sheetName,rowIndex,record) {
+      const sheet=state.book.Sheets[sheetName];
+      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:"",blankrows:true});
+      const headers=(matrix[0]||[]).map(header=>String(header).trim());
+      if (!Number.isInteger(rowIndex)||rowIndex<1||rowIndex>=matrix.length) throw new Error("The original spreadsheet row could not be located. Reload Recipes.ods and try again.");
+      const current=matrix[rowIndex]||[];
+      const updated=headers.map((header,column)=>Object.prototype.hasOwnProperty.call(record,header)?record[header]??"":current[column]??"");
+      XLSX.utils.sheet_add_aoa(sheet,[updated],{origin:{r:rowIndex,c:0}});
+    }
+
+    function replaceMatchingCells(sheetName,columnName,oldValue,newValue) {
+      if (!oldValue||oldValue===newValue) return;
+      const sheet=state.book.Sheets[sheetName];
+      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:"",blankrows:true});
+      const headers=(matrix[0]||[]).map(header=>String(header).trim()), column=headers.indexOf(columnName);
+      if (column<0) return;
+      matrix.slice(1).forEach((row,index)=>{
+        if (sameText(row[column],oldValue)) XLSX.utils.sheet_add_aoa(sheet,[[newValue]],{origin:{r:index+1,c:column}});
+      });
+    }
+
+    function cascadeRecipeRename(oldName,newName) {
+      replaceMatchingCells("Variations","Recipe",oldName,newName);
+      replaceMatchingCells("Recipes","Parent Recipe",oldName,newName);
+    }
+
+    function clearExistingVariationDefaults(recipeName) {
+      const sheet=state.book.Sheets.Variations;
+      const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:"",blankrows:true});
+      const headers=matrix[0].map(header=>String(header).trim());
+      const recipeColumn=headers.indexOf("Recipe"), defaultColumn=headers.indexOf("Default");
+      if (recipeColumn < 0 || defaultColumn < 0) return;
+      matrix.slice(1).forEach((row,index)=>{
+        if (sameText(row[recipeColumn],recipeName) && sameText(row[defaultColumn],"yes")) {
+          XLSX.utils.sheet_add_aoa(sheet,[["No"]],{origin:{r:index+1,c:defaultColumn}});
+        }
+      });
+    }
+
+    function refreshAfterEdit() {
+      hydrateWorkbook(state.book,state.sourceLabel,false);
+      $("source").textContent="Working copy of "+state.sourceLabel;
+    }
+
+    function saveRecipe(event) {
+      event.preventDefault();
+      const form=event.currentTarget;
+      if (!form.reportValidity()) return;
+      const editing=state.editor.action==="edit"&&state.editor.entity==="recipe";
+      const name=$("recipe-name").value.trim();
+      if (sheetRows("Recipes").some(row=>row.__rowIndex!==state.editor.rowIndex&&value(row,"Recipe").toLowerCase()===name.toLowerCase())) { setFeedback("recipe-feedback","A recipe with this name already exists. Use a variation for another version."); return; }
+      const parent=$("recipe-parent").value;
+      if (parent&&(parent.toLowerCase()===name.toLowerCase()||parent.toLowerCase()===state.editor.originalName.toLowerCase())) { setFeedback("recipe-feedback","A recipe cannot be its own parent. Choose another parent or None."); return; }
+      const ingredients=collectSimpleRows("recipe-ingredient-list"), steps=collectStepRows("recipe-step-list");
+      if (!ingredients.length || !steps.length) { setFeedback("recipe-feedback","Add at least one ingredient and one complete method step."); return; }
+      const cleanTags=uniqueInOrder(tags($("recipe-tags").value));
+      const record={
+        "Recipe":name,"Kind":$("recipe-kind").value,"Category":$("recipe-category").value.trim(),"Subcategory":$("recipe-subcategory").value.trim(),
+        "Summary":$("recipe-summary").value.trim(),"Method":$("recipe-method").value.trim(),"Tags":cleanTags.join(", "),"Parent Recipe":parent,
+        "Ingredients":ingredients.join("\n"),"Steps":steps.join("\n"),"Notes":collectNoteRows("recipe-note-list").join("\n"),"Show":$("recipe-show").checked?"Yes":"No"
+      };
+      try {
+        if (editing) { updateRecord("Recipes",state.editor.rowIndex,record); cascadeRecipeRename(state.editor.originalName,name); }
+        else appendRecord("Recipes",record);
+        state.pendingChanges+=1; refreshAfterEdit();
+        const next=event.submitter?.dataset.next;
+        if (next==="variation") { state.editor={action:"add",entity:"variation",rowIndex:null,originalName:""}; resetVariationForm(name); configureEditor(); setEditorMode("variation"); setFeedback("variation-feedback","“"+name+"” is in the working copy. Add only what changes in this variation.",true); }
+        else { $("editor-dialog").close(); const saved=state.recipes.find(recipe=>sameText(recipe.name,name)); if (saved) openRecipe(saved); }
+      } catch(error) { setFeedback("recipe-feedback",error.message||(editing?"The recipe changes could not be saved.":"The recipe could not be added.")); }
+    }
+
+    function saveVariation(event) {
+      event.preventDefault();
+      const form=event.currentTarget;
+      if (!form.reportValidity()) return;
+      const editing=state.editor.action==="edit"&&state.editor.entity==="variation";
+      const recipeName=$("variation-recipe").value, name=$("variation-name").value.trim();
+      if (sheetRows("Variations").some(row=>row.__rowIndex!==state.editor.rowIndex&&value(row,"Recipe").toLowerCase()===recipeName.toLowerCase() && value(row,"Variation").toLowerCase()===name.toLowerCase())) { setFeedback("variation-feedback","That recipe already has a variation with this name."); return; }
+      const isDefault=$("variation-default").checked;
+      const record={
+        "Recipe":recipeName,"Variation":name,"Type":$("variation-type").value.trim(),"Health / Taste":$("variation-position").value.trim(),
+        "Method":$("variation-method").value.trim(),"Batch / Pan":$("variation-batch").value.trim(),"What Changes":$("variation-changes").value.trim(),
+        "Ingredients":collectSimpleRows("variation-ingredient-list").join("\n"),"Steps":collectStepRows("variation-step-list").join("\n"),"Default":isDefault?"Yes":"No",
+        "Notes":collectNoteRows("variation-note-list").join("\n"),"Show":$("variation-show").checked?"Yes":"No"
+      };
+      try {
+        if (isDefault) clearExistingVariationDefaults(recipeName);
+        if (editing) updateRecord("Variations",state.editor.rowIndex,record); else appendRecord("Variations",record);
+        state.pendingChanges+=1; refreshAfterEdit();
+        const next=event.submitter?.dataset.next;
+        if (next==="another") { state.editor={action:"add",entity:"variation",rowIndex:null,originalName:""}; resetVariationForm(recipeName); configureEditor(); setFeedback("variation-feedback","Variation saved to the working copy. Add another for the same recipe, or download the ODS.",true); }
+        else { $("editor-dialog").close(); const recipe=state.recipes.find(item=>sameText(item.name,recipeName)); if (recipe) openRecipe(recipe,name); }
+      } catch(error) { setFeedback("variation-feedback",error.message||(editing?"The variation changes could not be saved.":"The variation could not be added.")); }
+    }
+
+    function downloadWorkbook() {
+      if (!state.book) return;
+      try {
+        XLSX.writeFile(state.book,"Recipes.ods",{bookType:"ods",compression:true});
+        $("status").textContent="Recipes.ods downloaded · replace the GitHub copy";
+      } catch(error) { alert(error.message||"The updated ODS could not be downloaded."); }
+    }
+
     $("open-file").addEventListener("click",() => $("file").click());
     $("file").addEventListener("change",async event => {
       const file=event.target.files[0]; if(!file)return;
       try { readWorkbook(await file.arrayBuffer(),file.name); } catch(error) { showError(error.message||"That spreadsheet could not be read."); }
       event.target.value="";
     });
+    $("open-editor").addEventListener("click",()=>openEditor("recipe"));
+    $("open-editor-bottom").addEventListener("click",()=>openEditor("recipe"));
+    $("recipe-tab").addEventListener("click",()=>switchEditorEntity("recipe"));
+    $("variation-tab").addEventListener("click",()=>switchEditorEntity("variation"));
+    $("recipe-form").addEventListener("submit",saveRecipe);
+    $("variation-form").addEventListener("submit",saveVariation);
+    document.querySelectorAll("[data-add]").forEach(button=>button.addEventListener("click",()=>addRepeatRow(button.dataset.add,button.dataset.target)));
+    $("download-workbook").addEventListener("click",downloadWorkbook);
+    $("download-workbook-bottom").addEventListener("click",downloadWorkbook);
     $("search").addEventListener("input",event=>{state.search=event.target.value;renderCards();});
     $("clear").addEventListener("click",()=>{state.search="";state.category="All recipes";state.tag="";$("search").value="";renderFilters();renderCards();});
     $("close-dialog").addEventListener("click",()=>$("recipe-dialog").close());
-    $("recipe-dialog").addEventListener("close",()=>document.body.classList.remove("modal-open"));
+    $("close-editor").addEventListener("click",()=>$("editor-dialog").close());
+    const syncModalState=()=>document.body.classList.toggle("modal-open",$("recipe-dialog").open||$("editor-dialog").open);
+    $("recipe-dialog").addEventListener("close",syncModalState);
+    $("editor-dialog").addEventListener("close",syncModalState);
     $("recipe-dialog").addEventListener("click",event=>{if(event.target===$("recipe-dialog"))$("recipe-dialog").close();});
     loadDefault();
   </script>
