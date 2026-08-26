@@ -99,6 +99,7 @@
     .recipe-body ol { counter-reset:step; }
     .recipe-body ol li { counter-increment:step; }
     .recipe-body ol li::before { content:counter(step); position:absolute; left:0; color:var(--red-dark); font:700 1.05rem Georgia,serif; }
+    .recipe-body ol li strong { display:block; margin-bottom:3px; color:var(--red-dark); font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; }
     .pending { padding:19px; border:1px dashed var(--line); background:var(--card); color:var(--muted); }
     .pending strong { color:var(--ink); }
     .pending p { margin:6px 0 0; }
@@ -108,6 +109,7 @@
     .important-notes h3 { margin:3px 0 12px; font:700 clamp(1.3rem,3vw,1.8rem) Georgia,serif; }
     .important-notes ul { margin:0; padding-left:1.2rem; }
     .important-notes li { margin:8px 0; color:#4c4438; line-height:1.55; }
+    .important-notes li strong { color:var(--red-dark); margin-right:.35rem; }
     .important-notes.variation-notes { background:#f6e8e1; border-left-color:var(--red); }
     @media(max-width:900px) { .hero,.update { grid-template-columns:1fr; } .hero-note { max-width:360px; border-radius:22px; text-align:left; } .library-head { align-items:stretch; flex-direction:column; } .recipe-grid { grid-template-columns:1fr; } .card { min-height:290px; } .update .button { grid-column:1; } }
     @media(max-width:700px) { dialog { width:100%; max-height:100vh; min-height:100vh; border-radius:0; } .variation-list,.recipe-body { grid-template-columns:1fr; } }
@@ -338,16 +340,41 @@
       const section=make("section","important-notes"+(extraClass?" "+extraClass:""));
       appendText(section,"h3","",title);
       const list=make("ul","");
-      lines(text).forEach(item=>appendText(list,"li","",item));
+      lines(text).forEach(item=>appendLabeledNote(list,item));
       section.appendChild(list);
       return section;
     }
 
+    function appendLabeledNote(list,item) {
+      const li=make("li","");
+      const match=item.match(/^(Technique|Warning|Why it works|Finish|Serving|Storage|Substitution):\s*(.*)$/i);
+      if (match) {
+        appendText(li,"strong","",match[1]+":");
+        li.appendChild(document.createTextNode(match[2]));
+      } else {
+        li.textContent=item;
+      }
+      list.appendChild(li);
+    }
+
     function contentSection(title,items,ordered) {
       const section=make("section",""); appendText(section,"p","eyebrow",title);
-      if (items.length) { const list=make(ordered?"ol":"ul",""); items.forEach(item=>appendText(list,"li","",ordered?item.replace(/^\d+[.)]\s*/,""):item)); section.appendChild(list); }
+      if (items.length) { const list=make(ordered?"ol":"ul",""); items.forEach(item=>ordered?appendMethodStep(list,item):appendText(list,"li","",item)); section.appendChild(list); }
       else { const pending=make("div","pending"); appendText(pending,"strong","",title+" not added yet."); appendText(pending,"p","","Add one "+(ordered?"step":"ingredient")+" per line in Recipes.ods and it will appear here automatically."); section.appendChild(pending); }
       return section;
+    }
+
+    function appendMethodStep(list,item) {
+      const li=make("li","");
+      const clean=item.replace(/^\d+[.)]\s*/,"");
+      const match=clean.match(/^([A-Za-z][A-Za-z -]{1,24})\s+—\s+(.*)$/);
+      if (match) {
+        appendText(li,"strong","",match[1]);
+        li.appendChild(document.createTextNode(match[2]));
+      } else {
+        li.textContent=clean;
+      }
+      list.appendChild(li);
     }
 
     $("open-file").addEventListener("click",() => $("file").click());
