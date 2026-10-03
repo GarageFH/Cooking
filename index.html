@@ -179,7 +179,7 @@
   <header>
     <a class="brand" href="#top"><span class="brand-mark">R</span><span>My Recipe Book</span></a>
     <div class="header-actions">
-      <p id="status">Loading Recipes.ods…</p>
+      <p id="status">No recipe file open</p>
       <input class="sr-only" id="file" type="file" accept=".ods,.xlsx,.xls">
       <button class="button" id="open-file" type="button">Open ODS</button>
       <button class="button primary" id="open-editor" type="button" disabled>Add recipe or variation</button>
@@ -194,9 +194,9 @@
       <p>Search the collection, choose a healthier or richer variation, and read each recipe in a clean cooking view.</p>
     </div>
     <div class="hero-note">
-      <span id="source">Live from Recipes.ods</span>
-      <strong id="recipe-count">Loading recipes…</strong>
-      <p id="variation-count">The site reads the spreadsheet directly.</p>
+      <span id="source">Your file, read on this device</span>
+      <strong id="recipe-count">Open Recipes.ods</strong>
+      <p id="variation-count">Nothing is uploaded; the page reads the spreadsheet in your browser.</p>
     </div>
   </section>
 
@@ -209,7 +209,7 @@
       <nav class="category-row" id="categories" aria-label="Recipe categories"></nav>
       <div class="tag-filters" id="tag-filters" aria-label="Popular recipe tags"></div>
       <div class="results"><span id="results">0 results</span><button id="clear" type="button" hidden>Clear filters</button></div>
-      <div class="notice" id="notice"><strong>Loading the recipe spreadsheet…</strong><p>If you opened this HTML file directly, use the Open ODS button.</p></div>
+      <div class="notice" id="notice"><strong>Open your Recipes.ods to start.</strong><p>Use the Open ODS button.</p></div>
       <div class="recipe-grid" id="cards"></div>
     </section>
 
@@ -218,7 +218,7 @@
       <ol>
         <li><span>1</span><p><strong>New dish? Add a base recipe.</strong> Enter its complete yield, ingredients and method once.</p></li>
         <li><span>2</span><p><strong>Different egg, topping or method? Add a variation.</strong> Open the base recipe, choose Add variation, and enter only the differences. The base always remains available.</p></li>
-        <li><span>3</span><p><strong>Download and publish.</strong> Review the working copy, download Recipes.ods, then replace the file beside index.html on GitHub.</p></li>
+        <li><span>3</span><p><strong>Download and keep.</strong> Review the working copy, download Recipes.ods and keep it on your device. Open it here next time.</p></li>
       </ol>
       <div class="update-actions">
         <button class="button" id="open-editor-bottom" type="button" disabled>Add recipe or variation</button>
@@ -227,7 +227,7 @@
     </section>
   </main>
 
-  <footer><span>My Recipe Book</span><span>Static HTML + one editable ODS file.</span></footer>
+  <footer><span>My Recipe Book</span><span>Static HTML + your own ODS file, opened on your device.</span></footer>
 
   <dialog id="recipe-dialog">
     <button class="close" id="close-dialog" type="button" aria-label="Close recipe">×</button>
@@ -375,7 +375,6 @@
 
   <script>
     "use strict";
-    const DEFAULT_FILE = "Recipes.ods";
     const state = { recipes: [], variations: [], search: "", category: "All recipes", tag: "", selected: null, variation: null, book: null, sourceLabel: "", pendingChanges: 0, editor: { action:"add", entity:"recipe", rowIndex:null, originalName:"" } };
     const $ = id => document.getElementById(id);
     const value = (row, key) => String(row[key] == null ? "" : row[key]).trim();
@@ -425,7 +424,7 @@
       if (resetPending) { state.search = ""; state.category = "All recipes"; state.tag = ""; $("search").value = ""; }
       const variationCount=state.variations.filter(item=>!isBaseVariation(item)).length;
       $("status").textContent = state.recipes.length + " entries · " + variationCount + " variations";
-      $("source").textContent = "Live from " + label;
+      $("source").textContent = "Opened: " + label;
       const masterCount = state.recipes.filter(recipe => recipe.kind.toLowerCase() !== "component").length;
       $("recipe-count").textContent = masterCount + " recipes";
       $("variation-count").textContent = (state.recipes.length-masterCount) + " components and " + variationCount + " true variations";
@@ -448,16 +447,13 @@
       }).filter(row=>headers.some(header=>String(row[header]??"").trim()));
     }
 
-    async function loadDefault() {
-      if (location.protocol === "file:") {
-        showError("Browsers do not allow a local HTML file to fetch another local file. Click Open ODS and choose Recipes.ods.");
-        return;
-      }
-      try {
-        const response = await fetch(DEFAULT_FILE, { cache:"no-store" });
-        if (!response.ok) throw new Error("Could not load Recipes.ods (" + response.status + ").");
-        readWorkbook(await response.arrayBuffer(), DEFAULT_FILE);
-      } catch (error) { showError(error.message || "Could not load Recipes.ods."); }
+    function showWelcome() {
+      $("status").textContent = "No recipe file open";
+      $("notice").hidden = false;
+      $("notice").replaceChildren(make("strong","","Open your Recipes.ods to start."), make("p","","Your recipe file stays on your device. Choose it with Open ODS each time you visit; the page reads it in this browser and uploads nothing."));
+      const button = make("button","button primary","Open Recipes.ods");
+      button.type = "button"; button.addEventListener("click", () => $("file").click());
+      $("notice").appendChild(button);
     }
 
     function showError(message) {
@@ -940,7 +936,7 @@
       if (!state.book) return;
       try {
         XLSX.writeFile(state.book,"Recipes.ods",{bookType:"ods",compression:true});
-        $("status").textContent="Recipes.ods downloaded · replace the GitHub copy";
+        $("status").textContent="Recipes.ods downloaded · open it here next time";
       } catch(error) { alert(error.message||"The updated ODS could not be downloaded."); }
     }
 
@@ -967,7 +963,7 @@
     $("recipe-dialog").addEventListener("close",syncModalState);
     $("editor-dialog").addEventListener("close",syncModalState);
     $("recipe-dialog").addEventListener("click",event=>{if(event.target===$("recipe-dialog"))$("recipe-dialog").close();});
-    loadDefault();
+    showWelcome();
   </script>
 </body>
 </html>
